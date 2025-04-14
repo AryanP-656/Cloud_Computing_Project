@@ -10,17 +10,20 @@ const taskInput = document.getElementById("task-input");
 const taskList = document.getElementById("task-list");
 
 // Fetch and show all tasks
+
 async function fetchTasks() {
   const { data, error } = await supabase.from("tasks").select("*");
+  console.log("Fetch result:", { data, error }); // ADD THIS LINE
+
   if (error) {
     console.error("Error fetching tasks:", error);
     return;
   }
 
-  taskList.innerHTML = ""; // Clear the list
+  taskList.innerHTML = "";
   data.forEach((task) => {
     const li = document.createElement("li");
-    li.textContent = task.title; // assuming your table has 'title'
+    li.textContent = task.title;
     taskList.appendChild(li);
   });
 }
@@ -46,4 +49,5 @@ taskForm.addEventListener("submit", (e) => {
 });
 
 // Initial load
+console.log("Supabase connected:", supabase);
 fetchTasks();
