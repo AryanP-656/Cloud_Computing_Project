@@ -125,6 +125,49 @@
       .hidden {
         display: none;
       }
+      /* Add modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 5px;
+        width: 80%;
+        max-width: 500px;
+      }
+
+      .close {
+        float: right;
+        cursor: pointer;
+        font-size: 1.5rem;
+      }
+
+      .member-list {
+        margin-top: 1rem;
+      }
+
+      .member-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .member-role {
+        color: #666;
+        font-size: 0.9rem;
+      }
     </style>
   </head>
   <body>
@@ -226,6 +269,15 @@
       <div id="teams-list"></div>
     </div>
 
+    <!-- Add modal HTML -->
+    <div id="membersModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Team Members</h3>
+        <div id="membersList" class="member-list"></div>
+      </div>
+    </div>
+
     <script type="module">
       import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -298,16 +350,28 @@
         // Fetch tasks created by the user
         const { data: createdTasks, error: createdError } = await supabase
           .from("tasks")
-          .select("*")
+          .select(
+            `
+            *,
+            creator:public_users!tasks_user_id_fkey(email),
+            assignee:public_users!tasks_assigned_to_fkey(email)
+          `
+          )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
         // Fetch tasks assigned to the user
         const { data: assignedTasks, error: assignedError } = await supabase
           .from("tasks")
-          .select("*, public_users!tasks_assigned_to_fkey(email)")
+          .select(
+            `
+            *,
+            creator:public_users!tasks_user_id_fkey(email),
+            assignee:public_users!tasks_assigned_to_fkey(email)
+          `
+          )
           .eq("assigned_to", user.id)
-          .neq("user_id", user.id) // Don't include tasks the user created themselves
+          .neq("user_id", user.id)
           .order("created_at", { ascending: false });
 
         if (createdError) {
@@ -359,10 +423,12 @@
         let assignedInfo = "";
         if (task.assigned_to && task.assigned_to !== user.id) {
           assignedInfo = `<div>Assigned to: ${
-            task.public_users?.email || "Unknown"
+            task.assignee?.email || "Unknown"
           }</div>`;
         } else if (isAssigned) {
-          assignedInfo = `<div>Assigned by: ${task.user_id}</div>`;
+          assignedInfo = `<div>Assigned by: ${
+            task.creator?.email || "Unknown"
+          }</div>`;
         }
 
         let deadlineInfo = "";
@@ -510,43 +576,7 @@
         // Render created teams
         if (createdTeams) {
           createdTeams.forEach((team) => {
-            const teamCard = document.createElement("div");
-            teamCard.classList.add("team-card");
-            teamCard.innerHTML = `
-              <h3>${team.name}</h3>
-              <p>${team.description || "No description"}</p>
-              <p><small>Created at: ${new Date(
-                team.created_at
-              ).toLocaleString()}</small></p>
-              <button class="view-team" data-team-id="${
-                team.id
-              }">View Members</button>
-              <button class="add-member" data-team-id="${
-                team.id
-              }">Add Member</button>
-            `;
-            teamsList.appendChild(teamCard);
-
-            // Add event listeners
-            setTimeout(() => {
-              const viewBtn = teamCard.querySelector(".view-team");
-              if (viewBtn) {
-                viewBtn.addEventListener("click", () => {
-                  // TODO: Show team members in a modal
-                  alert("View team members");
-                });
-              }
-
-              const addBtn = teamCard.querySelector(".add-member");
-              if (addBtn) {
-                addBtn.addEventListener("click", () => {
-                  const email = prompt("Enter email of user to add:");
-                  if (email) {
-                    addTeamMember(team.id, email);
-                  }
-                });
-              }
-            }, 0);
+            teamsList.appendChild(renderTeam(team));
           });
         }
 
@@ -558,29 +588,7 @@
           );
 
           memberOnlyTeams.forEach((membership) => {
-            const team = membership.teams;
-            const teamCard = document.createElement("div");
-            teamCard.classList.add("team-card");
-            teamCard.innerHTML = `
-              <h3>${team.name}</h3>
-              <p>${team.description || "No description"}</p>
-              <p><small>Role: ${membership.role}</small></p>
-              <button class="view-team" data-team-id="${
-                team.id
-              }">View Members</button>
-            `;
-            teamsList.appendChild(teamCard);
-
-            // Add event listeners
-            setTimeout(() => {
-              const viewBtn = teamCard.querySelector(".view-team");
-              if (viewBtn) {
-                viewBtn.addEventListener("click", () => {
-                  // TODO: Show team members in a modal
-                  alert("View team members");
-                });
-              }
-            }, 0);
+            teamsList.appendChild(renderTeam(membership.teams, true));
           });
         }
       }
@@ -606,7 +614,12 @@
         // Get all members of these teams
         const { data: members, error: membersError } = await supabase
           .from("team_members")
-          .select("*, member:public_users!team_members_user_id_fkey(id, email)")
+          .select(
+            `
+            *,
+            member:public_users!team_members_user_id_fkey(id, email)
+          `
+          )
           .in("team_id", teamIds);
 
         if (membersError) {
@@ -737,6 +750,94 @@
           document.getElementById("team-description").value = "";
         }
       });
+
+      // Add modal functionality
+      const modal = document.getElementById("membersModal");
+      const closeBtn = modal.querySelector(".close");
+      const membersList = document.getElementById("membersList");
+
+      closeBtn.onclick = function () {
+        modal.style.display = "none";
+      };
+
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
+
+      async function viewTeamMembers(teamId) {
+        try {
+          const { data: members, error } = await supabase
+            .from("team_members")
+            .select(
+              `
+              *,
+              member:public_users!team_members_user_id_fkey(email)
+            `
+            )
+            .eq("team_id", teamId);
+
+          if (error) throw error;
+
+          membersList.innerHTML = "";
+          members.forEach((member) => {
+            const div = document.createElement("div");
+            div.className = "member-item";
+            div.innerHTML = `
+              <span>${member.member.email}</span>
+              <span class="member-role">${member.role}</span>
+            `;
+            membersList.appendChild(div);
+          });
+
+          modal.style.display = "block";
+        } catch (error) {
+          console.error("Error fetching team members:", error);
+          alert("Failed to load team members!");
+        }
+      }
+
+      // Update the teams rendering to use the new viewTeamMembers function
+      function renderTeam(team, isMember = false) {
+        const teamCard = document.createElement("div");
+        teamCard.classList.add("team-card");
+        teamCard.innerHTML = `
+          <h3>${team.name}</h3>
+          <p>${team.description || "No description"}</p>
+          <p><small>Created at: ${new Date(
+            team.created_at
+          ).toLocaleString()}</small></p>
+          <button class="view-team" data-team-id="${
+            team.id
+          }">View Members</button>
+          ${
+            !isMember
+              ? `<button class="add-member" data-team-id="${team.id}">Add Member</button>`
+              : ""
+          }
+        `;
+
+        // Add event listeners
+        const viewBtn = teamCard.querySelector(".view-team");
+        if (viewBtn) {
+          viewBtn.addEventListener("click", () => {
+            viewTeamMembers(team.id);
+          });
+        }
+
+        const addBtn = teamCard.querySelector(".add-member");
+        if (addBtn) {
+          addBtn.addEventListener("click", () => {
+            const email = prompt("Enter email of user to add:");
+            if (email) {
+              addTeamMember(team.id, email);
+            }
+          });
+        }
+
+        return teamCard;
+      }
 
       // Initialize
       checkAuth();
