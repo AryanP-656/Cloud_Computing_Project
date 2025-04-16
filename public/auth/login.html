@@ -49,18 +49,15 @@
       document
         .getElementById("google-login")
         .addEventListener("click", async () => {
+          // Get the base URL for redirects, accounting for whether we're on production or dev
+          const baseUrl = new URL(window.location.href);
+          const siteUrl = baseUrl.origin;
+
           const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-              redirectTo:
-                window.location.hostname === "localhost" ||
-                window.location.hostname === "127.0.0.1"
-                  ? window.location.origin
-                  : "https://task-sync-one.vercel.app",
-              queryParams: {
-                access_type: "offline",
-                prompt: "consent",
-              },
+              redirectTo: siteUrl, // Use the actual origin without path
+              scopes: "email profile",
             },
           });
           if (error) {
@@ -83,7 +80,10 @@
               password,
             });
             if (error) throw error;
-            window.location.href = "../index.html";
+
+            // Get the base URL and redirect
+            const baseUrl = new URL(window.location.href);
+            window.location.href = baseUrl.origin + "/index.html";
           } catch (error) {
             console.error("Login error:", error);
             alert("Login failed: " + error.message);
