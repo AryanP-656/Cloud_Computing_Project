@@ -4,22 +4,100 @@
     <meta charset="UTF-8" />
     <title>Login - TaskSync</title>
     <style>
+      :root {
+        --bg-primary: #121212;
+        --bg-secondary: #1e1e1e;
+        --bg-tertiary: #2d2d2d;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0a0;
+        --accent-primary: #0084ff;
+        --accent-hover: #0066cc;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .auth-box {
-        max-width: 300px;
-        margin: 2rem auto;
+        background: var(--bg-secondary);
+        max-width: 360px;
+        width: 90%;
+        margin: 2rem;
         padding: 2rem;
-        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: var(--text-primary);
+      }
+
       .provider-btn {
-        display: block;
         width: 100%;
-        margin: 0.5rem 0;
-        padding: 0.5rem;
+        padding: 0.8rem;
+        margin: 0.8rem 0;
+        border: none;
+        border-radius: 6px;
+        background: var(--accent-primary);
+        color: white;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
       }
+
+      .provider-btn:hover {
+        background: var(--accent-hover);
+      }
+
+      hr {
+        margin: 1.5rem 0;
+        border: none;
+        border-top: 1px solid var(--bg-tertiary);
+      }
+
       input {
         width: 100%;
+        padding: 0.8rem;
         margin: 0.5rem 0;
-        padding: 0.5rem;
+        background: var(--bg-tertiary);
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+      }
+
+      input::placeholder {
+        color: var(--text-secondary);
+      }
+
+      #email-auth {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
       }
     </style>
   </head>
