@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - TaskSync</title>
+    <style>
+      .auth-box {
+        max-width: 300px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border: 1px solid #ccc;
+      }
+      .provider-btn {
+        display: block;
+        width: 100%;
+        margin: 0.5rem 0;
+        padding: 0.5rem;
+      }
+      input {
+        width: 100%;
+        margin: 0.5rem 0;
+        padding: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auth-box">
+      <h2>TaskSync Login</h2>
+      <button class="provider-btn" id="google-login">
+        Continue with Google
+      </button>
+      <hr />
+      <form id="email-auth">
+        <input type="email" id="email" placeholder="Email" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button class="provider-btn" type="submit">Continue with Email</button>
+      </form>
+    </div>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+      const supabase = createClient(
+        "https://dcaausyumlrnqxvxajzj.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYWF1c3l1bWxybnF4dnhhanpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2MTEzMDYsImV4cCI6MjA2MDE4NzMwNn0.7C_056_X-DN9WBOnVRjgfiL8aEZOccRUH28vvMsS_vw"
+      );
+
+      // Google Login
+      document
+        .getElementById("google-login")
+        .addEventListener("click", async () => {
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+              redirectTo: window.location.origin + "/index.html",
+              queryParams: {
+                access_type: "offline",
+                prompt: "consent",
+              },
+            },
+          });
+          if (error) {
+            console.error("Google login error:", error);
+            alert("Google login failed: " + error.message);
+          }
+        });
+
+      // Email/Password Login
+      document
+        .getElementById("email-auth")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          try {
+            const { error } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            if (error) throw error;
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Login error:", error);
+            alert("Login failed: " + error.message);
+          }
+        });
+    </script>
+  </body>
+</html>

@@ -2,10 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Task List</title>
+    <title>Your Tasks</title>
+    <style>
+      #logout-btn {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.5rem 1rem;
+      }
+      #task-form {
+        margin: 2rem 0;
+      }
+      #task-input {
+        padding: 0.5rem;
+        width: 300px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+      }
+    </style>
   </head>
   <body>
-    <h1>Tasks</h1>
+    <button id="logout-btn">Logout</button>
+    <h1>Your Tasks</h1>
+
     <form id="task-form">
       <input
         type="text"
@@ -17,6 +42,97 @@
     </form>
 
     <ul id="task-list"></ul>
-    <script type="module" src="./main.js"></script>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+      const supabase = createClient(
+        "https://dcaausyumlrnqxvxajzj.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYWF1c3l1bWxybnF4dnhhanpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2MTEzMDYsImV4cCI6MjA2MDE4NzMwNn0.7C_056_X-DN9WBOnVRjgfiL8aEZOccRUH28vvMsS_vw"
+      );
+
+      // DOM Elements
+      const taskForm = document.getElementById("task-form");
+      const taskInput = document.getElementById("task-input");
+      const taskList = document.getElementById("task-list");
+      const logoutBtn = document.getElementById("logout-btn");
+
+      // Auth Check
+      let user = null;
+      async function checkAuth() {
+        const {
+          data: { user: currentUser },
+          error,
+        } = await supabase.auth.getUser();
+        if (error || !currentUser) {
+          window.location.href = "/auth/login.html";
+          return;
+        }
+        user = currentUser;
+        console.log("Authenticated user:", user);
+        fetchTasks();
+      }
+
+      // Logout Handler
+      logoutBtn.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/auth/login.html";
+      });
+
+      // Task Functions
+      async function fetchTasks() {
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Fetch error:", error);
+          alert("Failed to load tasks!");
+          return;
+        }
+
+        taskList.innerHTML = data
+          .map(
+            (task) => `
+                <li>
+                    ${task.title} 
+                    <small>${new Date(task.created_at).toLocaleString()}</small>
+                </li>
+            `
+          )
+          .join("");
+      }
+
+      async function addTask(title) {
+        const { error } = await supabase.from("tasks").insert([
+          {
+            title,
+            user_id: user.id,
+            status: "todo",
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+        if (error) {
+          console.error("Insert error:", error);
+          alert("Failed to add task!");
+        } else {
+          taskInput.value = "";
+          fetchTasks();
+        }
+      }
+
+      // Form Handler
+      taskForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const title = taskInput.value.trim();
+        if (title) addTask(title);
+      });
+
+      // Initialize
+      checkAuth();
+    </script>
   </body>
 </html>
