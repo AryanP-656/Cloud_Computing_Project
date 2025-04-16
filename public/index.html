@@ -334,13 +334,21 @@
         console.log("Authenticated user:", user);
 
         // Initialize app data
-        fetchTasks();
-        fetchTeams();
-        fetchTeamMembers();
+        await fetchTasks();
+        await fetchTeams();
+        await fetchTeamMembers();
+
+        // Setup real-time subscriptions
+        await setupRealTimeSubscriptions();
       }
 
       // Logout Handler
       logoutBtn.addEventListener("click", async () => {
+        // Unsubscribe from all channels before logging out
+        await supabase.channel("tasks_channel").unsubscribe();
+        await supabase.channel("team_members_channel").unsubscribe();
+        await supabase.channel("teams_channel").unsubscribe();
+
         await supabase.auth.signOut();
         window.location.href = "./auth/login.html";
       });
@@ -837,6 +845,86 @@
         }
 
         return teamCard;
+      }
+
+      // After checkAuth() function, add these real-time subscriptions
+      async function setupRealTimeSubscriptions() {
+        console.log("Setting up real-time subscriptions for user:", user.id);
+
+        // Subscribe to tasks changes
+        const tasksSubscription = supabase
+          .channel("tasks_channel")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "tasks",
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload) => {
+              console.log("🔵 Tasks change received!", payload);
+              fetchTasks(); // Refresh tasks when there's a change
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "tasks",
+              filter: `assigned_to=eq.${user.id}`,
+            },
+            (payload) => {
+              console.log("🔴 Assigned tasks change received!", payload);
+              fetchTasks(); // Refresh tasks when there's a change
+            }
+          )
+          .subscribe((status) => {
+            console.log("Tasks subscription status:", status);
+          });
+
+        // Subscribe to team members changes
+        const teamMembersSubscription = supabase
+          .channel("team_members_channel")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "team_members",
+            },
+            (payload) => {
+              console.log("🟢 Team members change received!", payload);
+              fetchTeams(); // Refresh teams when there's a change
+              fetchTeamMembers(); // Refresh team members dropdown
+            }
+          )
+          .subscribe((status) => {
+            console.log("Team members subscription status:", status);
+          });
+
+        // Subscribe to teams changes
+        const teamsSubscription = supabase
+          .channel("teams_channel")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "teams",
+            },
+            (payload) => {
+              console.log("🟡 Teams change received!", payload);
+              fetchTeams(); // Refresh teams when there's a change
+            }
+          )
+          .subscribe((status) => {
+            console.log("Teams subscription status:", status);
+          });
+
+        // Log successful setup
+        console.log("Real-time subscriptions setup complete!");
       }
 
       // Initialize
