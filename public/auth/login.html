@@ -53,16 +53,27 @@
           const baseUrl = new URL(window.location.href);
           const siteUrl = baseUrl.origin;
 
-          const { error } = await supabase.auth.signInWithOAuth({
+          // Check if we're on production or localhost
+          const isProd = !["localhost", "127.0.0.1"].includes(baseUrl.hostname);
+          const redirectUrl = isProd
+            ? "https://task-sync-one.vercel.app/auth/callback"
+            : `${siteUrl}/auth/callback`;
+
+          console.log("Using redirect URL:", redirectUrl);
+
+          const { data, error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-              redirectTo: siteUrl, // Use the actual origin without path
+              redirectTo: redirectUrl,
               scopes: "email profile",
             },
           });
+
           if (error) {
             console.error("Google login error:", error);
             alert("Google login failed: " + error.message);
+          } else {
+            console.log("Authentication URL:", data?.url);
           }
         });
 

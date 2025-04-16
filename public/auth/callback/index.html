@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Authentication Callback</title>
+  </head>
+  <body>
+    <p>Processing authentication...</p>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+      const supabase = createClient(
+        "https://dcaausyumlrnqxvxajzj.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYWF1c3l1bWxybnF4dnhhanpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2MTEzMDYsImV4cCI6MjA2MDE4NzMwNn0.7C_056_X-DN9WBOnVRjgfiL8aEZOccRUH28vvMsS_vw"
+      );
+
+      // Get the hash fragment from the URL
+      async function handleCallback() {
+        try {
+          // The session should be automatically set by Supabase
+          const { data, error } = await supabase.auth.getSession();
+
+          if (error) {
+            console.error("Callback error:", error);
+            document.body.innerHTML = `<p>Authentication error: ${error.message}</p>`;
+            return;
+          }
+
+          if (data?.session) {
+            console.log("Authentication successful");
+            // Redirect to main page
+            window.location.href = "/index.html";
+          } else {
+            // If no session, try to process the hash fragment
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+              console.log("Processing hash fragment");
+              const { error } = await supabase.auth.refreshSession();
+              if (error) {
+                throw error;
+              } else {
+                window.location.href = "/index.html";
+              }
+            } else {
+              document.body.innerHTML = "<p>No authentication data found.</p>";
+            }
+          }
+        } catch (error) {
+          console.error("Authentication processing error:", error);
+          document.body.innerHTML = `<p>Error: ${error.message}</p>`;
+        }
+      }
+
+      // Process the callback
+      handleCallback();
+    </script>
+  </body>
+</html>
