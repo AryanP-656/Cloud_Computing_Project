@@ -4,44 +4,227 @@
     <meta charset="UTF-8" />
     <title>Your Tasks</title>
     <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
       #logout-btn {
         position: fixed;
         top: 1rem;
         right: 1rem;
         padding: 0.5rem 1rem;
       }
+      .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .tab-container {
+        margin-bottom: 1rem;
+      }
+      .tab {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: #f1f1f1;
+        cursor: pointer;
+      }
+      .tab.active {
+        background: #007bff;
+        color: white;
+      }
       #task-form {
         margin: 2rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 5px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
       }
-      #task-input {
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+      }
+      #task-input,
+      #task-description,
+      #task-deadline,
+      #task-assignee,
+      #task-priority {
         padding: 0.5rem;
-        width: 300px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #task-form button {
+        padding: 0.5rem 1rem;
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        grid-column: 1 / 3;
+      }
+      .tasks-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
       }
       ul {
         list-style: none;
         padding: 0;
       }
       li {
-        padding: 0.5rem;
-        border-bottom: 1px solid #eee;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 5px;
+        border-left: 5px solid;
+        background: #f9f9f9;
+      }
+      li.priority-high {
+        border-left-color: #dc3545;
+      }
+      li.priority-medium {
+        border-left-color: #ffc107;
+      }
+      li.priority-low {
+        border-left-color: #28a745;
+      }
+      .task-title {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+      .task-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #666;
+      }
+      .team-container {
+        margin: 2rem 0;
+      }
+      #create-team-form {
+        margin: 1rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 5px;
+      }
+      #teams-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+      }
+      .team-card {
+        padding: 1rem;
+        border-radius: 5px;
+        background: #f1f1f1;
+      }
+      .hidden {
+        display: none;
       }
     </style>
   </head>
   <body>
     <button id="logout-btn">Logout</button>
-    <h1>Your Tasks</h1>
 
-    <form id="task-form">
-      <input
-        type="text"
-        id="task-input"
-        placeholder="Enter a new task"
-        required
-      />
-      <button type="submit">Add Task</button>
-    </form>
+    <div class="task-header">
+      <h1>TaskSync</h1>
+    </div>
 
-    <ul id="task-list"></ul>
+    <div class="tab-container">
+      <button class="tab active" data-tab="tasks">Tasks</button>
+      <button class="tab" data-tab="teams">Teams</button>
+    </div>
+
+    <div id="tasks-view">
+      <form id="task-form">
+        <div class="form-group">
+          <label for="task-input">Task Title</label>
+          <input
+            type="text"
+            id="task-input"
+            placeholder="Enter a new task"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="task-description">Description</label>
+          <textarea
+            id="task-description"
+            rows="3"
+            placeholder="Task description"
+          ></textarea>
+        </div>
+        <div class="form-group">
+          <label for="task-deadline">Deadline</label>
+          <input type="datetime-local" id="task-deadline" />
+        </div>
+        <div class="form-group">
+          <label for="task-priority">Priority</label>
+          <select id="task-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="task-assignee">Assign To</label>
+          <select id="task-assignee">
+            <option value="">Myself</option>
+            <!-- Team members will be added here -->
+          </select>
+        </div>
+        <button type="submit">Add Task</button>
+      </form>
+
+      <h2>Your Tasks</h2>
+      <div class="tasks-container">
+        <div>
+          <h3>To Do</h3>
+          <ul id="task-list-todo" class="task-list"></ul>
+        </div>
+        <div>
+          <h3>In Progress</h3>
+          <ul id="task-list-inprogress" class="task-list"></ul>
+        </div>
+        <div>
+          <h3>Completed</h3>
+          <ul id="task-list-completed" class="task-list"></ul>
+        </div>
+      </div>
+
+      <h2>Assigned to You</h2>
+      <ul id="assigned-tasks" class="task-list"></ul>
+    </div>
+
+    <div id="teams-view" class="hidden">
+      <h2>Your Teams</h2>
+      <form id="create-team-form">
+        <div class="form-group">
+          <label for="team-name">Team Name</label>
+          <input
+            type="text"
+            id="team-name"
+            required
+            placeholder="Enter team name"
+          />
+        </div>
+        <div class="form-group">
+          <label for="team-description">Description</label>
+          <textarea
+            id="team-description"
+            rows="2"
+            placeholder="Team description"
+          ></textarea>
+        </div>
+        <button type="submit">Create Team</button>
+      </form>
+
+      <div id="teams-list"></div>
+    </div>
 
     <script type="module">
       import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -54,8 +237,35 @@
       // DOM Elements
       const taskForm = document.getElementById("task-form");
       const taskInput = document.getElementById("task-input");
-      const taskList = document.getElementById("task-list");
+      const taskDescription = document.getElementById("task-description");
+      const taskDeadline = document.getElementById("task-deadline");
+      const taskPriority = document.getElementById("task-priority");
+      const taskAssignee = document.getElementById("task-assignee");
+      const taskListTodo = document.getElementById("task-list-todo");
+      const taskListInProgress = document.getElementById(
+        "task-list-inprogress"
+      );
+      const taskListCompleted = document.getElementById("task-list-completed");
+      const assignedTasksList = document.getElementById("assigned-tasks");
       const logoutBtn = document.getElementById("logout-btn");
+      const createTeamForm = document.getElementById("create-team-form");
+      const teamsList = document.getElementById("teams-list");
+      const tabs = document.querySelectorAll(".tab");
+      const views = document.querySelectorAll("#tasks-view, #teams-view");
+
+      // Tab Switching
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          const tabName = tab.dataset.tab;
+
+          views.forEach((view) => {
+            view.classList.add("hidden");
+          });
+          document.getElementById(`${tabName}-view`).classList.remove("hidden");
+        });
+      });
 
       // Auth Check
       let user = null;
@@ -70,7 +280,11 @@
         }
         user = currentUser;
         console.log("Authenticated user:", user);
+
+        // Initialize app data
         fetchTasks();
+        fetchTeams();
+        fetchTeamMembers();
       }
 
       // Logout Handler
@@ -81,54 +295,449 @@
 
       // Task Functions
       async function fetchTasks() {
-        const { data, error } = await supabase
+        // Fetch tasks created by the user
+        const { data: createdTasks, error: createdError } = await supabase
           .from("tasks")
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Fetch error:", error);
+        // Fetch tasks assigned to the user
+        const { data: assignedTasks, error: assignedError } = await supabase
+          .from("tasks")
+          .select("*, users:assigned_to(email)")
+          .eq("assigned_to", user.id)
+          .neq("user_id", user.id) // Don't include tasks the user created themselves
+          .order("created_at", { ascending: false });
+
+        if (createdError) {
+          console.error("Fetch error:", createdError);
           alert("Failed to load tasks!");
           return;
         }
 
-        taskList.innerHTML = data
-          .map(
-            (task) => `
-                <li>
-                    ${task.title} 
-                    <small>${new Date(task.created_at).toLocaleString()}</small>
-                </li>
-            `
-          )
-          .join("");
+        if (assignedError) {
+          console.error("Fetch assigned tasks error:", assignedError);
+          alert("Failed to load assigned tasks!");
+          return;
+        }
+
+        // Clear task lists first
+        taskListTodo.innerHTML = "";
+        taskListInProgress.innerHTML = "";
+        taskListCompleted.innerHTML = "";
+        assignedTasksList.innerHTML = "";
+
+        // Render created tasks in appropriate lists
+        if (createdTasks) {
+          createdTasks.forEach((task) => {
+            const taskElement = createTaskElement(task);
+
+            if (task.status === "completed") {
+              taskListCompleted.appendChild(taskElement);
+            } else if (task.status === "inprogress") {
+              taskListInProgress.appendChild(taskElement);
+            } else {
+              taskListTodo.appendChild(taskElement);
+            }
+          });
+        }
+
+        // Render assigned tasks
+        if (assignedTasks) {
+          assignedTasks.forEach((task) => {
+            const taskElement = createTaskElement(task, true);
+            assignedTasksList.appendChild(taskElement);
+          });
+        }
       }
 
-      async function addTask(title) {
-        const { error } = await supabase.from("tasks").insert([
-          {
-            title,
-            user_id: user.id,
-            status: "todo",
-            created_at: new Date().toISOString(),
-          },
-        ]);
+      function createTaskElement(task, isAssigned = false) {
+        const li = document.createElement("li");
+        li.classList.add(`priority-${task.priority || "medium"}`);
+
+        let assignedInfo = "";
+        if (task.assigned_to && task.assigned_to !== user.id) {
+          assignedInfo = `<div>Assigned to: ${
+            task.users?.email || task.assigned_to
+          }</div>`;
+        } else if (isAssigned) {
+          assignedInfo = `<div>Assigned by: ${
+            task.created_by_email || "Someone"
+          }</div>`;
+        }
+
+        let deadlineInfo = "";
+        if (task.deadline) {
+          const deadline = new Date(task.deadline);
+          deadlineInfo = `<div>Due: ${deadline.toLocaleString()}</div>`;
+        }
+
+        li.innerHTML = `
+          <div class="task-title">${task.title}</div>
+          <div>${task.description || ""}</div>
+          ${deadlineInfo}
+          ${assignedInfo}
+          <div class="task-meta">
+            <span>${new Date(task.created_at).toLocaleString()}</span>
+            <span>${task.priority || "medium"} priority</span>
+          </div>
+          <div class="task-actions">
+            <select class="status-select" data-task-id="${task.id}">
+              <option value="todo" ${
+                task.status === "todo" ? "selected" : ""
+              }>To Do</option>
+              <option value="inprogress" ${
+                task.status === "inprogress" ? "selected" : ""
+              }>In Progress</option>
+              <option value="completed" ${
+                task.status === "completed" ? "selected" : ""
+              }>Completed</option>
+            </select>
+            <button class="delete-task" data-task-id="${
+              task.id
+            }">Delete</button>
+          </div>
+        `;
+
+        // Add event listeners
+        setTimeout(() => {
+          const statusSelect = li.querySelector(".status-select");
+          if (statusSelect) {
+            statusSelect.addEventListener("change", async (e) => {
+              await updateTaskStatus(task.id, e.target.value);
+            });
+          }
+
+          const deleteBtn = li.querySelector(".delete-task");
+          if (deleteBtn) {
+            deleteBtn.addEventListener("click", async () => {
+              await deleteTask(task.id);
+            });
+          }
+        }, 0);
+
+        return li;
+      }
+
+      async function updateTaskStatus(taskId, status) {
+        const { error } = await supabase
+          .from("tasks")
+          .update({ status })
+          .eq("id", taskId);
+
+        if (error) {
+          console.error("Update error:", error);
+          alert("Failed to update task status!");
+        } else {
+          fetchTasks();
+        }
+      }
+
+      async function deleteTask(taskId) {
+        if (!confirm("Are you sure you want to delete this task?")) return;
+
+        const { error } = await supabase
+          .from("tasks")
+          .delete()
+          .eq("id", taskId);
+
+        if (error) {
+          console.error("Delete error:", error);
+          alert("Failed to delete task!");
+        } else {
+          fetchTasks();
+        }
+      }
+
+      async function addTask(
+        title,
+        description,
+        deadline,
+        priority,
+        assignedTo
+      ) {
+        const newTask = {
+          title,
+          description,
+          user_id: user.id,
+          status: "todo",
+          created_at: new Date().toISOString(),
+          deadline: deadline || null,
+          priority: priority || "medium",
+          assigned_to: assignedTo || user.id,
+        };
+
+        const { error } = await supabase.from("tasks").insert([newTask]);
 
         if (error) {
           console.error("Insert error:", error);
           alert("Failed to add task!");
         } else {
-          taskInput.value = "";
+          resetTaskForm();
           fetchTasks();
         }
       }
 
-      // Form Handler
+      function resetTaskForm() {
+        taskInput.value = "";
+        taskDescription.value = "";
+        taskDeadline.value = "";
+        taskPriority.value = "medium";
+        taskAssignee.value = "";
+      }
+
+      // Team Functions
+      async function fetchTeams() {
+        // Get teams the user created
+        const { data: createdTeams, error: createdError } = await supabase
+          .from("teams")
+          .select("*")
+          .eq("created_by", user.id);
+
+        // Get teams the user is a member of
+        const { data: memberTeams, error: memberError } = await supabase
+          .from("team_members")
+          .select("*, teams(*)")
+          .eq("user_id", user.id);
+
+        if (createdError || memberError) {
+          console.error("Fetch teams error:", createdError || memberError);
+          alert("Failed to load teams!");
+          return;
+        }
+
+        teamsList.innerHTML = "";
+
+        // Render created teams
+        if (createdTeams) {
+          createdTeams.forEach((team) => {
+            const teamCard = document.createElement("div");
+            teamCard.classList.add("team-card");
+            teamCard.innerHTML = `
+              <h3>${team.name}</h3>
+              <p>${team.description || "No description"}</p>
+              <p><small>Created at: ${new Date(
+                team.created_at
+              ).toLocaleString()}</small></p>
+              <button class="view-team" data-team-id="${
+                team.id
+              }">View Members</button>
+              <button class="add-member" data-team-id="${
+                team.id
+              }">Add Member</button>
+            `;
+            teamsList.appendChild(teamCard);
+
+            // Add event listeners
+            setTimeout(() => {
+              const viewBtn = teamCard.querySelector(".view-team");
+              if (viewBtn) {
+                viewBtn.addEventListener("click", () => {
+                  // TODO: Show team members in a modal
+                  alert("View team members");
+                });
+              }
+
+              const addBtn = teamCard.querySelector(".add-member");
+              if (addBtn) {
+                addBtn.addEventListener("click", () => {
+                  const email = prompt("Enter email of user to add:");
+                  if (email) {
+                    addTeamMember(team.id, email);
+                  }
+                });
+              }
+            }, 0);
+          });
+        }
+
+        // Render teams the user is a member of (but didn't create)
+        if (memberTeams) {
+          const memberOnlyTeams = memberTeams.filter(
+            (membership) =>
+              membership.teams && membership.teams.created_by !== user.id
+          );
+
+          memberOnlyTeams.forEach((membership) => {
+            const team = membership.teams;
+            const teamCard = document.createElement("div");
+            teamCard.classList.add("team-card");
+            teamCard.innerHTML = `
+              <h3>${team.name}</h3>
+              <p>${team.description || "No description"}</p>
+              <p><small>Role: ${membership.role}</small></p>
+              <button class="view-team" data-team-id="${
+                team.id
+              }">View Members</button>
+            `;
+            teamsList.appendChild(teamCard);
+
+            // Add event listeners
+            setTimeout(() => {
+              const viewBtn = teamCard.querySelector(".view-team");
+              if (viewBtn) {
+                viewBtn.addEventListener("click", () => {
+                  // TODO: Show team members in a modal
+                  alert("View team members");
+                });
+              }
+            }, 0);
+          });
+        }
+      }
+
+      async function fetchTeamMembers() {
+        // First get all teams the user is part of
+        const { data: userTeams, error: teamsError } = await supabase
+          .from("team_members")
+          .select("team_id")
+          .eq("user_id", user.id);
+
+        if (teamsError) {
+          console.error("Fetch teams error:", teamsError);
+          return;
+        }
+
+        if (!userTeams || userTeams.length === 0) {
+          return; // No teams, nothing to do
+        }
+
+        const teamIds = userTeams.map((t) => t.team_id);
+
+        // Get all members of these teams
+        const { data: members, error: membersError } = await supabase
+          .from("team_members")
+          .select("*, users:user_id(id, email)")
+          .in("team_id", teamIds);
+
+        if (membersError) {
+          console.error("Fetch team members error:", membersError);
+          return;
+        }
+
+        if (!members || members.length === 0) {
+          return; // No members, nothing to do
+        }
+
+        // Add team members to assignee dropdown
+        taskAssignee.innerHTML = '<option value="">Myself</option>';
+
+        // Add unique members (excluding the current user)
+        const uniqueMembers = new Map();
+        members.forEach((member) => {
+          if (member.user_id !== user.id && member.users) {
+            uniqueMembers.set(member.users.id, member.users);
+          }
+        });
+
+        uniqueMembers.forEach((member) => {
+          const option = document.createElement("option");
+          option.value = member.id;
+          option.textContent = member.email;
+          taskAssignee.appendChild(option);
+        });
+      }
+
+      async function createTeam(name, description) {
+        const { data, error } = await supabase
+          .from("teams")
+          .insert([
+            {
+              name,
+              description,
+              created_by: user.id,
+            },
+          ])
+          .select();
+
+        if (error) {
+          console.error("Create team error:", error);
+          alert("Failed to create team!");
+          return;
+        }
+
+        // Add the creator as a team member with role 'admin'
+        if (data && data.length > 0) {
+          const teamId = data[0].id;
+          await supabase.from("team_members").insert([
+            {
+              team_id: teamId,
+              user_id: user.id,
+              role: "admin",
+            },
+          ]);
+        }
+
+        fetchTeams();
+      }
+
+      async function addTeamMember(teamId, userEmail) {
+        // First, find the user by email
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", userEmail)
+          .limit(1);
+
+        if (userError || !userData || userData.length === 0) {
+          alert("User not found with that email address.");
+          return;
+        }
+
+        const userId = userData[0].id;
+
+        // Then add them to the team
+        const { error } = await supabase.from("team_members").insert([
+          {
+            team_id: teamId,
+            user_id: userId,
+            role: "member",
+          },
+        ]);
+
+        if (error) {
+          if (error.code === "23505") {
+            // Unique constraint violation
+            alert("User is already a member of this team.");
+          } else {
+            console.error("Add team member error:", error);
+            alert("Failed to add team member!");
+          }
+        } else {
+          alert("Team member added successfully!");
+          fetchTeamMembers(); // Refresh the assignees dropdown
+        }
+      }
+
+      // Form Handlers
       taskForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const title = taskInput.value.trim();
-        if (title) addTask(title);
+        const description = taskDescription.value.trim();
+        const deadline = taskDeadline.value
+          ? new Date(taskDeadline.value).toISOString()
+          : null;
+        const priority = taskPriority.value;
+        const assignedTo = taskAssignee.value || user.id;
+
+        if (title) {
+          addTask(title, description, deadline, priority, assignedTo);
+        }
+      });
+
+      createTeamForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = document.getElementById("team-name").value.trim();
+        const description = document
+          .getElementById("team-description")
+          .value.trim();
+
+        if (name) {
+          createTeam(name, description);
+          document.getElementById("team-name").value = "";
+          document.getElementById("team-description").value = "";
+        }
       });
 
       // Initialize

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Authenticating...</title>
+  </head>
+  <body>
+    <p>Please wait while we complete your authentication...</p>
+
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+      const supabase = createClient(
+        "https://dcaausyumlrnqxvxajzj.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYWF1c3l1bWxybnF4dnhhanpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2MTEzMDYsImV4cCI6MjA2MDE4NzMwNn0.7C_056_X-DN9WBOnVRjgfiL8aEZOccRUH28vvMsS_vw"
+      );
+
+      // Get the base URL for redirects
+      const baseUrl = new URL(window.location.href);
+      const siteUrl = baseUrl.origin;
+
+      // Handle the OAuth callback
+      async function handleCallback() {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Callback error:", error);
+          window.location.href = `${siteUrl}/auth/login.html?error=${encodeURIComponent(
+            error.message
+          )}`;
+          return;
+        }
+
+        if (data?.session) {
+          // Successful login, redirect to main page
+          window.location.href = `${siteUrl}/index.html`;
+        } else {
+          // No session found, redirect back to login
+          window.location.href = `${siteUrl}/auth/login.html`;
+        }
+      }
+
+      handleCallback();
+    </script>
+  </body>
+</html>
