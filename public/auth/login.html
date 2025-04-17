@@ -99,11 +99,37 @@
         flex-direction: column;
         gap: 0.8rem;
       }
+
+      .toggle-auth {
+        text-align: center;
+        margin-top: 1rem;
+        color: var(--text-secondary);
+      }
+
+      .toggle-auth button {
+        background: none;
+        border: none;
+        color: var(--accent-primary);
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.9rem;
+      }
+
+      .toggle-auth button:hover {
+        text-decoration: underline;
+      }
+
+      .error-message {
+        color: #ff4444;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
     <div class="auth-box">
-      <h2>TaskSync Login</h2>
+      <h2 id="auth-title">TaskSync Login</h2>
       <button class="provider-btn" id="google-login">
         Continue with Google
       </button>
@@ -111,8 +137,15 @@
       <form id="email-auth">
         <input type="email" id="email" placeholder="Email" required />
         <input type="password" id="password" placeholder="Password" required />
-        <button class="provider-btn" type="submit">Continue with Email</button>
+        <button class="provider-btn" type="submit" id="submit-btn">
+          Continue with Email
+        </button>
       </form>
+      <div class="toggle-auth">
+        <span id="toggle-text">Don't have an account?</span>
+        <button type="button" id="toggle-btn">Sign up</button>
+      </div>
+      <div id="error-message" class="error-message"></div>
     </div>
 
     <script type="module">
@@ -123,21 +156,39 @@
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYWF1c3l1bWxybnF4dnhhanpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2MTEzMDYsImV4cCI6MjA2MDE4NzMwNn0.7C_056_X-DN9WBOnVRjgfiL8aEZOccRUH28vvMsS_vw"
       );
 
+      let isLoginMode = true;
+      const authTitle = document.getElementById("auth-title");
+      const toggleText = document.getElementById("toggle-text");
+      const toggleBtn = document.getElementById("toggle-btn");
+      const submitBtn = document.getElementById("submit-btn");
+      const errorMessage = document.getElementById("error-message");
+
+      // Toggle between login and signup
+      toggleBtn.addEventListener("click", () => {
+        isLoginMode = !isLoginMode;
+        authTitle.textContent = isLoginMode
+          ? "TaskSync Login"
+          : "TaskSync Sign Up";
+        toggleText.textContent = isLoginMode
+          ? "Don't have an account?"
+          : "Already have an account?";
+        toggleBtn.textContent = isLoginMode ? "Sign up" : "Log in";
+        submitBtn.textContent = isLoginMode
+          ? "Continue with Email"
+          : "Sign Up with Email";
+        errorMessage.textContent = "";
+      });
+
       // Google Login
       document
         .getElementById("google-login")
         .addEventListener("click", async () => {
-          // Get the base URL for redirects, accounting for whether we're on production or dev
           const baseUrl = new URL(window.location.href);
           const siteUrl = baseUrl.origin;
-
-          // Check if we're on production or localhost
           const isProd = !["localhost", "127.0.0.1"].includes(baseUrl.hostname);
           const redirectUrl = isProd
             ? "https://task-sync-one.vercel.app/auth/callback"
             : `${siteUrl}/auth/callback`;
-
-          console.log("Using redirect URL:", redirectUrl);
 
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: "google",
@@ -149,13 +200,13 @@
 
           if (error) {
             console.error("Google login error:", error);
-            alert("Google login failed: " + error.message);
+            errorMessage.textContent = "Google login failed: " + error.message;
           } else {
             console.log("Authentication URL:", data?.url);
           }
         });
 
-      // Email/Password Login
+      // Email Auth (Login/Signup)
       document
         .getElementById("email-auth")
         .addEventListener("submit", async (e) => {
@@ -164,20 +215,52 @@
           const password = document.getElementById("password").value;
 
           try {
-            const { error } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
+            let result;
+            if (isLoginMode) {
+              result = await supabase.auth.signInWithPassword({
+                email,
+                password,
+              });
+            } else {
+              result = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                  emailRedirectTo: window.location.origin + "/auth/callback",
+                },
+              });
+            }
+
+            const { error } = result;
             if (error) throw error;
 
-            // Get the base URL and redirect
+            if (!isLoginMode && result.data?.user?.identities?.length === 0) {
+              errorMessage.textContent =
+                "This email is already registered. Please log in instead.";
+              return;
+            }
+
+            if (!isLoginMode && result.data?.user?.confirmation_sent_at) {
+              errorMessage.textContent =
+                "Please check your email to confirm your account.";
+              return;
+            }
+
+            // Successful login, redirect to main page
             const baseUrl = new URL(window.location.href);
             window.location.href = baseUrl.origin + "/index.html";
           } catch (error) {
-            console.error("Login error:", error);
-            alert("Login failed: " + error.message);
+            console.error("Auth error:", error);
+            errorMessage.textContent = error.message;
           }
         });
+
+      // Check for error parameter in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get("error");
+      if (error) {
+        errorMessage.textContent = decodeURIComponent(error);
+      }
     </script>
   </body>
 </html>
